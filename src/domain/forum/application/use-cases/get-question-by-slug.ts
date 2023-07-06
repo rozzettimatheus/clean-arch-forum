@@ -1,5 +1,6 @@
 import { Question } from '@/domain/forum/enterprise/entities/question'
 import { QuestionsRepository } from '../repositories/questions.repository'
+import { UseCase } from '@/core/use-cases/use-case'
 
 type GetQuestionBySlugUseCaseRequest = {
   slug: string
@@ -9,7 +10,10 @@ type GetQuestionBySlugUseCaseResponse = {
   question: Question
 }
 
-export class GetQuestionBySlugUseCase {
+export class GetQuestionBySlugUseCase
+  implements
+    UseCase<GetQuestionBySlugUseCaseRequest, GetQuestionBySlugUseCaseResponse>
+{
   constructor(private questionsRepository: QuestionsRepository) {}
 
   async execute({
