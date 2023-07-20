@@ -38,3 +38,13 @@
   - add novo anexo (create)
   - remover segundo anexo criado previamente (delete)
   - editar um anexo existente (update)
+
+## subdominios
+
+- Core: o que da/envolve dinheiro (ecommerce - compra, catalogo, pagamento, faturamento) - NAO PODE PARAR DE JEITO NENHUM
+- Supporting: da suporte para o Core funcionar (estoque)
+- Generic: voce precisa mas nao sao essenciais (notificacao ao cliente, promocoes, chat)
+
+- DDD desconectar da parte tecnica / dividir por setores
+
+- ajuda a enxergar - microsservicos (independencia!! entre os subdominios)
