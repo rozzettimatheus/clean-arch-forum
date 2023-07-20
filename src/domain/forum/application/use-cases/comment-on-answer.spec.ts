@@ -1,8 +1,10 @@
-import { makeAnswer } from 'test/factories/make-answer'
+import { UniqueEntityId } from '@/core/entities/unique-entity-id'
 import { CommentOnAnswerUseCase } from './comment-on-answer'
+
+import { makeAnswer } from 'test/factories/make-answer'
 import { InMemoryAnswerCommentsRepository } from 'test/repositories/in-memory-answer-comments-repository'
 import { InMemoryAnswersRepository } from 'test/repositories/in-memory-answers-repository'
-import { UniqueEntityId } from '@/core/entities/unique-entity-id'
+import { InMemoryAnswerAttachmentsRepository } from 'test/repositories/in-memory-answer-attachments-repository'
 
 let inMemoryAnswerCommentsRepository: InMemoryAnswerCommentsRepository
 let inMemoryAnswersRepository: InMemoryAnswersRepository
@@ -11,7 +13,9 @@ let sut: CommentOnAnswerUseCase
 describe('Comment on Answer', () => {
   beforeEach(() => {
     inMemoryAnswerCommentsRepository = new InMemoryAnswerCommentsRepository()
-    inMemoryAnswersRepository = new InMemoryAnswersRepository()
+    inMemoryAnswersRepository = new InMemoryAnswersRepository(
+      new InMemoryAnswerAttachmentsRepository(),
+    )
 
     sut = new CommentOnAnswerUseCase(
       inMemoryAnswersRepository,
@@ -24,13 +28,13 @@ describe('Comment on Answer', () => {
 
     await inMemoryAnswersRepository.create(answer)
 
-    const { answerComment } = await sut.execute({
+    const result = await sut.execute({
       answerId: answer.id.toString(),
       authorId: answer.authorId.toString(),
       content: 'A new comment',
     })
 
-    expect(answerComment.id).toBeTruthy()
+    expect(result.isRight()).toBe(true)
     expect(inMemoryAnswerCommentsRepository.items[0].content).toEqual(
       'A new comment',
     )

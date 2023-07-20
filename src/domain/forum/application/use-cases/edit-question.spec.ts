@@ -3,14 +3,26 @@ import { UniqueEntityId } from '@/core/entities/unique-entity-id'
 
 import { InMemoryQuestionsRepository } from 'test/repositories/in-memory-questions-repository'
 import { makeQuestion } from 'test/factories/make-question'
+import { ResourceNotFoundError } from './errors/resource-not-found-error'
+import { NotAllowedError } from './errors/not-allowed-error'
+import { InMemoryQuestionAttachmentsRepository } from 'test/repositories/in-memory-question-attachments-repository'
+import { makeQuestionAttachment } from 'test/factories/make-question-attachment'
 
 let inMemoryQuestionsRepository: InMemoryQuestionsRepository
+let inMemoryQuestionAttachmentsRepository: InMemoryQuestionAttachmentsRepository
 let sut: EditQuestionUseCase
 
 describe('Edit question', () => {
   beforeEach(() => {
-    inMemoryQuestionsRepository = new InMemoryQuestionsRepository()
-    sut = new EditQuestionUseCase(inMemoryQuestionsRepository)
+    inMemoryQuestionAttachmentsRepository =
+      new InMemoryQuestionAttachmentsRepository()
+    inMemoryQuestionsRepository = new InMemoryQuestionsRepository(
+      inMemoryQuestionAttachmentsRepository,
+    )
+    sut = new EditQuestionUseCase(
+      inMemoryQuestionsRepository,
+      inMemoryQuestionAttachmentsRepository,
+    )
   })
 
   it('should be able to edit a question', async () => {
@@ -22,28 +34,52 @@ describe('Edit question', () => {
     )
 
     await inMemoryQuestionsRepository.create(newQuestion)
+
+    inMemoryQuestionAttachmentsRepository.items.push(
+      makeQuestionAttachment({
+        questionId: newQuestion.id,
+        attachmentId: new UniqueEntityId('1'),
+      }),
+      makeQuestionAttachment({
+        questionId: newQuestion.id,
+        attachmentId: new UniqueEntityId('2'),
+      }),
+    )
+
     await sut.execute({
       questionId: newQuestion.id.toValue(),
       authorId: 'author-1',
       title: 'Updated title',
       content: 'Updated content',
+      attachmentsIds: ['1', '3'],
     })
 
     expect(inMemoryQuestionsRepository.items[0]).toMatchObject({
       title: 'Updated title',
       content: 'Updated content',
     })
+    expect(
+      inMemoryQuestionsRepository.items[0].attachments.getItems(),
+    ).toHaveLength(2)
+    expect(inMemoryQuestionsRepository.items[0].attachments.getItems()).toEqual(
+      [
+        expect.objectContaining({ attachmentId: new UniqueEntityId('1') }),
+        expect.objectContaining({ attachmentId: new UniqueEntityId('3') }),
+      ],
+    )
   })
 
   it('should not be able to edit a non-existing question', async () => {
-    await expect(() =>
-      sut.execute({
-        authorId: 'non-existing-author',
-        questionId: 'non-existing-question',
-        content: '',
-        title: '',
-      }),
-    ).rejects.toBeInstanceOf(Error)
+    const result = await sut.execute({
+      authorId: 'non-existing-author',
+      questionId: 'non-existing-question',
+      content: '',
+      title: '',
+      attachmentsIds: [],
+    })
+
+    expect(result.isLeft()).toBe(true)
+    expect(result.value).toBeInstanceOf(ResourceNotFoundError)
   })
 
   it('should not be able to edit a question from another user', async () => {
@@ -56,13 +92,15 @@ describe('Edit question', () => {
 
     await inMemoryQuestionsRepository.create(newQuestion)
 
-    await expect(() =>
-      sut.execute({
-        questionId: newQuestion.id.toValue(),
-        authorId: 'another-author',
-        title: 'Updated title',
-        content: 'Updated content',
-      }),
-    ).rejects.toBeInstanceOf(Error)
+    const result = await sut.execute({
+      questionId: newQuestion.id.toValue(),
+      authorId: 'another-author',
+      title: 'Updated title',
+      content: 'Updated content',
+      attachmentsIds: [],
+    })
+
+    expect(result.isLeft()).toBe(true)
+    expect(result.value).toBeInstanceOf(NotAllowedError)
   })
 })

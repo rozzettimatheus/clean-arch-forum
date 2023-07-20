@@ -3,13 +3,16 @@ import { FetchQuestionAnswersUseCase } from './fetch-question-answers'
 
 import { InMemoryAnswersRepository } from 'test/repositories/in-memory-answers-repository'
 import { makeAnswer } from 'test/factories/make-answer'
+import { InMemoryAnswerAttachmentsRepository } from 'test/repositories/in-memory-answer-attachments-repository'
 
 let inMemoryAnswersRepository: InMemoryAnswersRepository
 let sut: FetchQuestionAnswersUseCase
 
 describe('Fetch Question Answers', () => {
   beforeEach(() => {
-    inMemoryAnswersRepository = new InMemoryAnswersRepository()
+    inMemoryAnswersRepository = new InMemoryAnswersRepository(
+      new InMemoryAnswerAttachmentsRepository(),
+    )
     sut = new FetchQuestionAnswersUseCase(inMemoryAnswersRepository)
   })
 
@@ -30,12 +33,13 @@ describe('Fetch Question Answers', () => {
       }),
     )
 
-    const { answers } = await sut.execute({
+    const result = await sut.execute({
       questionId: 'question-01',
       page: 1,
     })
 
-    expect(answers).toHaveLength(3)
+    expect(result.isRight()).toBe(true)
+    expect(result.value?.answers).toHaveLength(3)
   })
 
   it('should be able to fetch paginated question answers', async () => {
@@ -47,11 +51,12 @@ describe('Fetch Question Answers', () => {
       )
     }
 
-    const { answers } = await sut.execute({
+    const result = await sut.execute({
       questionId: 'question-01',
       page: 2,
     })
 
-    expect(answers).toHaveLength(2)
+    expect(result.isRight()).toBe(true)
+    expect(result.value?.answers).toHaveLength(2)
   })
 })
