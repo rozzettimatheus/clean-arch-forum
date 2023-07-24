@@ -57,6 +57,12 @@ export class Question extends AggregateRoot<QuestionProps> {
     return dayJs().diff(this.createdAt, 'days') <= 3
   }
 
+  get titleExcerpt() {
+    return this.props.title.length > 40
+      ? this.props.title.substring(0, 40).trimEnd().concat('...')
+      : this.props.title
+  }
+
   set title(title: string) {
     this.props.title = title
     this.props.slug = Slug.createFromText(title)
